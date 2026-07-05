@@ -20,8 +20,22 @@ app.get('/',(req,res)=>{
 app.get('/login',(req,res)=>{
     res.render('login');
 });
-app.get('/profile',isLogIn,(req,res)=>{
-    res.render('login');
+app.get('/profile',isLogIn,async (req,res)=>{
+    const user = await userModel.findOne({email:req.user.email}).populate("posts");
+   
+    res.render("profile",{user});
+});
+app.post('/post',isLogIn,async (req,res)=>{
+    const{content} = req.body;
+    const user = await userModel.findOne({email:req.user.email});
+    let post = await postModel.create({
+
+    user:user._id,
+    content
+   })
+   user.posts.push(post._id);
+   await user.save();
+    res.redirect("/profile");
 });
 app.post('/register',async (req,res)=>{
      const {name,username,password,email,age} = req.body;
@@ -47,38 +61,29 @@ app.post('/register',async (req,res)=>{
 
 });
 
-app.post('/login',async (req,res)=>{
-     const {name,username,password,email,age} = req.body;
 
-    let user = await userModel.findOne({email});
-    if(!user) return res.status(500).send('Something went wrong');
 
-    bcrypt.compare(password,user.password,(err,result)=>{
-        if(result){
-            const token = jwt.sign({email:email, userid : user._id},"shhhhh");
-            res.cookie("token" , token);
-            return res.send("login successful");
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    const user = await userModel.findOne({ email });
+    if (!user) {
+        return res.status(400).send("Invalid email or password");
+    }
+
+    bcrypt.compare(password, user.password, (err, result) => {
+        if (!result) {
+            return res.redirect("/login");
         }
-        else return res.redirect('/login');
-    })
 
-    
+        const token = jwt.sign(
+            { email: user.email, userid: user._id },
+            "shhhhh"
+        );
 
-});
-
-app.post('/login',async (req,res)=>{
-     const {name,username,password,email,age} = req.body;
-
-    let user = await userModel.findOne({email});
-    if(!user) return res.status(500).send('Something went wrong');
-
-    bcrypt.compare(password,user.password,(err,result)=>{
-        if(result) return res.send("login successful");
-        else return res.redirect('/login');
-    })
-
-    
-
+        res.cookie("token", token);
+        res.redirect("/profile");
+    });
 });
 
 app.get('/logout',(req,res)=>{
@@ -88,9 +93,9 @@ app.get('/logout',(req,res)=>{
 });
 
 function isLogIn(req,res,next){
-    if(req.cookies.token === "") return res.send('you must be login');
+    if(req.cookies.token === "") return res.redirect('/login');
     else{
-         const data = jwt.verify(req.cookies.token,"shhhhh");
+         let data = jwt.verify(req.cookies.token,"shhhhh");
          req.user = data;
          next();
     }
@@ -98,3 +103,4 @@ function isLogIn(req,res,next){
 
 
 app.listen(3000);
+
