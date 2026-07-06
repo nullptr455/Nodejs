@@ -25,6 +25,44 @@ app.get('/profile',isLogIn,async (req,res)=>{
    
     res.render("profile",{user});
 });
+
+
+app.get('/like/:id',isLogIn,async (req,res)=>{
+    const post = await postModel.findOne({_id:req.params.id}).populate("user");
+
+    if(post.like.indexOf(req.user.userid) === -1){
+        post.like.push(req.user.userid);
+    }else{
+        post.like.splice(post.like.indexOf(req.user.userid),1);
+    }
+   
+    await post.save();
+    res.redirect("/profile");
+});
+
+app.get('/edit/:id',isLogIn,async (req,res)=>{
+    const post = await postModel.findOne({_id:req.params.id}).populate("user");
+
+    res.render("edit" ,{post});
+});
+
+app.post('/update/:id',isLogIn,async (req,res)=>{
+    const post = await postModel.findOneAndUpdate({ _id: req.params.id}, { content: req.body.content });
+    res.redirect("/profile");
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.post('/post',isLogIn,async (req,res)=>{
     const{content} = req.body;
     const user = await userModel.findOne({email:req.user.email});
