@@ -11,9 +11,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 
-app.get('/', (req, res) => {
-      res.send('hello');
-})
-
+app.use("/owners",ownersRouter);
+app.use("/users",usersRouter);
+app.use("/products",productsRouter);
 
 app.listen(3000);
